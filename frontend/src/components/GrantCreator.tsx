@@ -1,14 +1,16 @@
-import React, { useState } from "react";
+import React, { useContext, useState } from "react";
 import { TextField, Button, Box, Typography, CircularProgress, Alert } from "@mui/material";
 import { SupabaseClient } from "@supabase/supabase-js";
+import { SessionContext } from "../contexts/SessionProvider";
 
 interface CreateGrantFormProps {
   supabase: SupabaseClient;
   onSuccess?: () => void; // optional callback for when grant is created
-  createGrant: (client: SupabaseClient, grantData: { name: string; grant_number: string }) => Promise<void>;
+  createGrant: (client: SupabaseClient, grantData: { name: string; grant_number: string; session: any }) => Promise<void>;
 }
 
 export const CreateGrantForm: React.FC<CreateGrantFormProps> = ({ supabase, createGrant, onSuccess }) => {
+  const session = useContext(SessionContext);
   const [name, setName] = useState("");
   const [GrantNumber, setGrantNumber] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,6 +27,7 @@ export const CreateGrantForm: React.FC<CreateGrantFormProps> = ({ supabase, crea
       await createGrant(supabase, {
         name,
         grant_number: GrantNumber,
+        session
       });
       setSuccess(true);
       setName("");

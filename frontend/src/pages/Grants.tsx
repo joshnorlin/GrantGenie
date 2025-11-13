@@ -1,11 +1,10 @@
-import { CreateGrantForm } from "../components/GrantCreator";
-import { supabase } from "../App";
-import { createGrant } from "../utils/supabase-client-queries/grants";
+import { GrantViewer } from "../components/GrantViewer";
+import Box from "@mui/material/Box";
 
 export default function Grants() {
   return (
-    <div>
-      <CreateGrantForm supabase={supabase} createGrant={createGrant} />
-    </div>
+    <Box sx={{ mt: 4 }}>
+      <GrantViewer />
+    </Box>
   );
 };
