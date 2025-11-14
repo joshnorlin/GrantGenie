@@ -1,75 +1,103 @@
-# React + TypeScript + Vite
+# GrantGenie Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite + Material UI powered frontend for GrantGenie, backed by Supabase (Auth, Postgres, and Edge Functions).
 
-Currently, two official plugins are available:
+## Overview
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+GrantGenie helps track grants, budgets, and spending. Users authenticate with Supabase, create and browse grants, inspect budget and institutional rules, and submit transactions that are verified by a Supabase Edge Function before being recorded.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+- **React + TypeScript**: Modern UI with type safety (React 19).
+- **Vite**: Fast dev server and build tooling (React Compiler enabled via Babel plugin).
+- **Material UI (MUI)**: UI components and layout.
+- **React Router**: Client-side routing.
+- **Supabase**: Auth, Postgres database, and Edge Functions via `@supabase/supabase-js` and `@supabase/auth-ui-react`.
 
-Note: This will impact Vite dev & build performances.
+## Architecture
 
-## Expanding the ESLint configuration
+- **App entry**: `src/main.tsx` mounts `<App />`.
+- **Routing and auth gate**: `src/App.tsx` + `src/AppRoutes.tsx`.
+  - If there’s no session, the app renders `<Auth />` from `@supabase/auth-ui-react`.
+  - When authenticated, users see the main UI with routes: `/home`, `/grants`, `/transactions`.
+- **Session and Supabase client**: `src/contexts/SessionProvider.tsx`.
+  - Creates a single Supabase client and provides `useSession()` and `useSupabase()` hooks.
+  - Subscribes to auth state changes and exposes a `logout` helper.
+- **Supabase client query layer**: `src/utils/supabase-client-queries/*`.
+  - `grants.ts`: `insertGrant`, `selectGrants`.
+  - `categories.ts`: `selectCategoriesByGrant`.
+  - `auth.ts`: `logout`.
+- **UI components/pages**:
+  - Navigation: `NavigationTabs` (MUI AppBar/Tabs).
+  - Grants: `CreateGrantForm`, `GrantViewer`, `GrantDetailsModal`.
+  - Transactions: `TransactionSubmitter` modal.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## How it works
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+1. **Boot & session**
+   - `SessionProvider` creates a Supabase client, loads the current session, and updates on auth changes.
+2. **Authentication**
+   - Unauthenticated users see the Supabase `<Auth />` component styled with `ThemeSupa`.
+   - Upon login, routes and data become available via the provided client.
+3. **Grants**
+   - Create grants with `CreateGrantForm` using `insertGrant()`; the DB sets ownership metadata via defaults/RLS.
+   - View and select grants in `GrantViewer`. Selecting a grant opens `GrantDetailsModal` which fetches:
+     - Budget items from `grant_budget_items` (with related `category_lookup`).
+     - Institutional rules from `institutional_rules` (JSON ruleset).
+     - Transactions from `transactions`.
+     - The modal computes totals and percent of budget used.
+4. **Transactions**
+   - `TransactionSubmitter` loads user grants and related categories, then obtains a JWT from the session.
+   - It calls the Supabase Edge Function `verify-transaction` with `grant_id`, `category_id`, `amount`, `description`.
+   - The function validates business rules and returns a result that the UI displays.
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Setup
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Prereqs: Node 18+ recommended.
+
+1. Install deps
+   - `npm install`
+2. Run dev server
+   - `npm run dev`
+3. Build
+   - `npm run build`
+4. Preview production build
+   - `npm run preview`
+
+### Supabase configuration
+
+- The Supabase URL and anon key are currently initialized in `src/contexts/SessionProvider.tsx`.
+- For production, it’s recommended to use environment variables (e.g., `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`) and read them via `import.meta.env`.
+- The Edge Function endpoint used by the UI is: `{SUPABASE_URL}/functions/v1/verify-transaction`.
+
+## Project structure (frontend)
+
+```
+frontend/
+  src/
+    App.tsx
+    AppRoutes.tsx
+    main.tsx
+    contexts/
+      SessionProvider.tsx
+    utils/
+      supabase-client-queries/
+        auth.ts
+        grants.ts
+        categories.ts
+    components/
+      NavigationTabs.tsx
+      GrantCreator.tsx
+      GrantViewer.tsx
+      GrantDetailsModal.tsx
+      TransactionSubmitter.tsx
+    pages/
+      Home.tsx
+      Grants.tsx
+      Transactions.tsx
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## Notes
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- MUI uses the default theme; customize by adding a `ThemeProvider` if needed.
+- Vite is configured with the React Compiler via Babel for improved optimization.
