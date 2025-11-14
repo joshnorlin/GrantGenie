@@ -1,92 +1,70 @@
-// contexts/SessionProvider.tsx
-import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../supabaseClient";
-import type { Session } from "@supabase/supabase-js";
+// SessionProvider.tsx
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@supabase/supabase-js";
 
 interface SessionContextType {
   session: Session | null;
+  supabase: SupabaseClient;
   logout: () => Promise<void>;
 }
 
-export const SessionContext = createContext<SessionContextType>({
-  session: null,
-  logout: async () => {},
-});
+const SessionContext = createContext<SessionContextType | null>(null);
 
 export const SessionProvider = ({ children }: { children: React.ReactNode }) => {
+  // Create Supabase client ONCE, inside the component
+  const supabase = useMemo(
+    () =>
+      createClient(
+        "https://ihoqewwgkpjmkgwoenck.supabase.co",
+        "sb_publishable_D5CnwE2fd6yCsARi6MVNGA_C-FVjvSd" // your anon/public key
+      ),
+    []
+  );
+
   const [session, setSession] = useState<Session | null>(null);
 
-  // First-time user logic
-  const handleFirstTimeUser = async (session: Session) => {
-    try {
-      const { data, error } = await supabase
-        .from("users")
-        .select("uid")
-        .eq("uid", session.user.id)
-        .single();
-
-      if (error && error.code !== "PGRST116") {
-        console.error("Error checking user existence:", error);
-        return;
-      }
-
-      if (!data) {
-        const res = await fetch(
-          "https://ihoqewwgkpjmkgwoenck.supabase.co/functions/v1/handle_new_user",
-          {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              user_id: session.user.id,
-              email: session.user.email,
-            }),
-          }
-        );
-
-        if (!res.ok) {
-          console.error("Edge function error:", await res.text());
-        } else {
-          console.log("✅ User inserted into public.users");
-        }
-      }
-    } catch (err) {
-      console.error("Error in handleFirstTimeUser:", err);
-    }
-  };
-
-  // Logout handler
-  const logout = async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-  };
-
+  // Load session when app starts
   useEffect(() => {
-    // Initial session fetch
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      if (session) handleFirstTimeUser(session);
+    supabase.auth.getSession().then((res) => {
+      setSession(res.data.session ?? null);
     });
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        setSession(session);
-        if (session) await handleFirstTimeUser(session);
-      }
-    );
+    // Listen for login/logout events
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
+
+  const logout = async () => {
+    await supabase.auth.signOut();
+  };
 
   return (
-    <SessionContext.Provider value={{ session, logout }}>
+    <SessionContext.Provider value={{ session, supabase, logout }}>
       {children}
     </SessionContext.Provider>
   );
 };
 
-// Hook for easier usage
-export const useSession = () => useContext(SessionContext);
+// Access the session (or null)
+export const useSession = () => {
+  const ctx = useContext(SessionContext);
+  if (!ctx) {
+    throw new Error("useSession must be used inside <SessionProvider>");
+  }
+  return ctx.session;
+};
+
+// Access the Supabase client
+export const useSupabase = () => {
+  const ctx = useContext(SessionContext);
+  if (!ctx) {
+    throw new Error("useSupabase must be used inside <SessionProvider>");
+  }
+  return ctx.supabase;
+};

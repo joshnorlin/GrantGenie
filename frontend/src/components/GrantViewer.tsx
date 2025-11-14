@@ -8,18 +8,22 @@ import {
   Typography,
   Paper,
 } from "@mui/material";
-import { supabase } from "../supabaseClient";
-import { selectGrants } from "../utils/supabase-client-queries/grants";
 import { GrantDetailsModal } from "./GrantDetailsModal";
-import { CreateGrantForm } from "./GrantCreator"; // assuming you have this
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { useSupabase } from "../contexts/SessionProvider";
 
-export function GrantViewer() {
+interface GrantViewerProps {
+  selectGrants: (client: SupabaseClient) => Promise<any[]>;
+  refreshTrigger?: number;
+}
+
+export function GrantViewer({ selectGrants, refreshTrigger = 0 }: GrantViewerProps) {
+  const supabase = useSupabase();
   const [grants, setGrants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedGrant, setSelectedGrant] = useState<any | null>(null);
 
-  // 1️⃣ Wrap fetchGrants in useCallback so it can be passed around
   const fetchGrants = useCallback(async () => {
     setLoading(true);
     setError(null);
@@ -32,12 +36,11 @@ export function GrantViewer() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectGrants]);
 
-  // 2️⃣ Fetch grants on mount
   useEffect(() => {
     fetchGrants();
-  }, [fetchGrants]);
+  }, [fetchGrants, refreshTrigger]);
 
   if (loading) {
     return <CircularProgress />;
@@ -56,15 +59,6 @@ export function GrantViewer() {
       <Typography variant="h6" gutterBottom>
         Your Grants
       </Typography>
-
-      {/* 3️⃣ Include the create form and pass fetchGrants as onSuccess */}
-      <CreateGrantForm
-        supabase={supabase}
-        createGrant={async (client, grantData) => {
-          await client.from("grants").insert(grantData).select();
-        }}
-        onSuccess={fetchGrants} // refresh the list after creation
-      />
 
       <List>
         {grants.map((grant) => (

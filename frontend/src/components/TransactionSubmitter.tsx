@@ -10,9 +10,9 @@ import {
   CircularProgress,
   Typography,
 } from "@mui/material";
-import { supabase } from "../supabaseClient";
 import { selectGrants } from "../utils/supabase-client-queries/grants";
 import { selectCategoriesByGrant } from "../utils/supabase-client-queries/categories";
+import { useSupabase } from "../contexts/SessionProvider";
 
 interface Grant {
   grant_id: any;
@@ -34,6 +34,7 @@ interface Props {
 }
 
 export default function TransactionModal({ open, onClose }: Props) {
+  const supabase = useSupabase();
   const [grants, setGrants] = useState<Grant[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<string>("");
