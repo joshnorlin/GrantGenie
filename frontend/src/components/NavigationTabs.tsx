@@ -19,7 +19,7 @@ export default function NavigationTabs({ onLogout }: { onLogout: () => void }) {
   })();
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
-    const paths = ["/home", "/grants", "/transactions"];
+    const paths = ["/", "/grants", "/transactions"];
     navigate(paths[newValue]);
   };
 

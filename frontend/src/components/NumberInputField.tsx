@@ -6,7 +6,7 @@ interface PositiveIntegerInputProps {
 
 }
 
-export default function PositiveIntegerInput({
+export default function NumberInputField({
   value,
   onChange,
 }: PositiveIntegerInputProps) {
