@@ -1,23 +1,22 @@
 import { useState } from "react";
-import { Button } from "@mui/material";
-import TransactionModal from '../components/TransactionSubmitter'
+import { Button, Box } from "@mui/material";
+import TransactionModal from '../components/TransactionSubmitter';
+import TransactionViewer from '../components/TransactionViewer';
 
-export default function ParentPage() {
+export default function TransactionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Function to open the modal
-  const handleOpenModal = () => {
-    setIsModalOpen(true);
-  };
-
-  // Function to close the modal
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
+  const handleOpenModal = () => setIsModalOpen(true);
+  const handleCloseModal = () => setIsModalOpen(false);
 
   return (
-    <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center'}}>
-      <Button variant="contained" color="primary" onClick={handleOpenModal} sx={{ mt: 30 }}>
+    <Box
+      display="flex"
+      flexDirection="column"
+      alignItems="center"
+      sx={{ mt: 5, gap: 4 }}
+    >
+      <Button variant="contained" color="primary" onClick={handleOpenModal}>
         Add Transaction
       </Button>
 
@@ -25,6 +24,9 @@ export default function ParentPage() {
         open={isModalOpen}
         onClose={handleCloseModal}
       />
-    </div>
+
+      <TransactionViewer />
+    </Box>
   );
 }
+

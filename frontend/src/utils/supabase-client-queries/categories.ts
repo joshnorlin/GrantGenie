@@ -3,7 +3,7 @@ import { SupabaseClient } from "@supabase/supabase-js";
 
 export async function selectCategoriesByGrant(client: SupabaseClient, grantId: string) {
   const { data, error } = await client
-    .from("category")
+    .from("category_lookup")
     .select("category_id, category, current_amount")
     .eq("grant_id", grantId);
 
