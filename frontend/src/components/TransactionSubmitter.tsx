@@ -151,7 +151,8 @@ export default function TransactionModal({ open, onClose }: Props) {
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
           margin="normal"
-          disabled={!categories.length}
+          //disabled={!categories.length}
+          disabled={!selectedGrant}
         >
           {categories.map((cat) => (
             <MenuItem key={cat.category_id} value={cat.category_id}>
