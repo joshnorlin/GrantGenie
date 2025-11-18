@@ -1,30 +1,32 @@
 import { InputAdornment, TextField } from "@mui/material";
 
 interface PositiveIntegerInputProps {
+  name: string;
   value: number | null;
-  onChange: (value: number | null) => void;
-
+  onChange: (name: string, value: number | null) => void;
 }
 
 export default function NumberInputField({
+  name,
   value,
   onChange,
 }: PositiveIntegerInputProps) {
-  // Convert numeric value to string for display.
-  const displayValue = value === null ? "" : String(value);
+  // Convert numeric value to string for display, with commas.
+  const displayValue = value === null ? "" : value.toLocaleString("en-US");
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const next = e.target.value;
+    const raw = e.target.value;
 
+    const inputWithoutCommas = raw.replace(/,/g, "");
     // Allow backspacing → empty string → null in parent
-    if (next === "") {
-      onChange(null);
+    if (inputWithoutCommas === "") {
+      onChange(name, null);
       return;
     }
 
     // Only allow digits
-    if (/^[0-9]+$/.test(next)) {
-      onChange(Number(next)); // parent gets a number
+    if (/^[0-9]+$/.test(inputWithoutCommas)) {
+      onChange(name, Number(inputWithoutCommas)); // parent gets a number
     }
 
     // If invalid ("-", "+", "e", letters), do nothing
@@ -37,6 +39,9 @@ export default function NumberInputField({
       onChange={handleChange}
       size="small"
       slotProps={{
+        htmlInput: {
+          maxlength: 12,
+        },
         input: {
           inputMode: "numeric",
           startAdornment: <InputAdornment position="start">$</InputAdornment>
