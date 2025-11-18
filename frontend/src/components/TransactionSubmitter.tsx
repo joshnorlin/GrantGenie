@@ -11,7 +11,7 @@ import {
   Typography,
 } from "@mui/material";
 import { selectGrants } from "../utils/supabase-client-queries/grants";
-import { selectCategoriesByGrant } from "../utils/supabase-client-queries/categories";
+import { selectAllCategories, selectCategoriesByGrant } from "../utils/supabase-client-queries/categories";
 import { useSupabase } from "../contexts/SessionProvider";
 
 interface Grant {
@@ -62,6 +62,7 @@ export default function TransactionModal({ open, onClose }: Props) {
   const fetchCategories = useCallback(async (grantId: string) => {
     try {
       const data = await selectCategoriesByGrant(supabase, grantId);
+      //const data = await selectAllCategories(supabase);
       setCategories(data);
       setSelectedCategory(""); // reset selection
     } catch (err: any) {
