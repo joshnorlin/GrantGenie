@@ -1,23 +1,31 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-export interface GrantBudgetItem {
-  grant_id: number;
-  description: string;
-  amount: number;
-  category_id: number;
-}
+import type { Session, SupabaseClient } from "@supabase/supabase-js";
+import type { GrantBudgetItem } from "../../types/grantBudgets";
 
 export async function insertGrantBudgetItems(
   client: SupabaseClient,
-  grantBudgetItemsData: GrantBudgetItem[]
+  session: Session | null,
+  items: GrantBudgetItem[]
 ) {
-  if (!grantBudgetItemsData || grantBudgetItemsData.length === 0) {
+  if (!items || items.length === 0) {
     throw new Error("No budget items provided for bulk creation");
   }
 
+  console.log('session', session)
+  console.log('session?.user.id', session?.user.id);
+
+  // Transform items for DB insert
+  const formatted = items.map((item) => ({
+    grant_id: item.grant_id,
+    category_id: item.category_id,
+    amount: item.value === "" ? 0 : item.value,
+    entered_by: session?.user.id,
+  }));
+
+  console.log('formatted budget items array', formatted);
+
   const { data, error } = await client
     .from("grant_budget_items")
-    .insert(grantBudgetItemsData)
+    .insert(formatted)
     .select();
 
   if (error) {
