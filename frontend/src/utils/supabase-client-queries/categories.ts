@@ -11,3 +11,13 @@ export async function selectCategoriesByGrant(client: SupabaseClient, grantId: s
 
   return data || [];
 }
+
+export async function selectAllCategories(client: SupabaseClient) {
+  const { data, error } = await client
+    .from("category_lookup")
+    .select("category_id, category, description, created_at");
+
+  if (error) throw error;
+
+  return data || [];
+}
