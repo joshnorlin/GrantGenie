@@ -39,7 +39,7 @@ export function GrantDetailsModal({ open, onClose, grant, supabase }: GrantDetai
         // 1️⃣ Budget items
         const { data: budgetData, error: budgetError } = await supabase
           .from("grant_budget_items")
-          .select("description, amount, category_lookup(category)")
+          .select("amount, category_lookup(category)")
           .eq("grant_id", grant.grant_id);
 
         if (budgetError) throw budgetError;
@@ -135,8 +135,9 @@ export function GrantDetailsModal({ open, onClose, grant, supabase }: GrantDetai
                         {budgetItems.map((item, i) => (
                           <ListItem key={i}>
                             <ListItemText
-                              primary={`${item.description || "(No description)"}`}
-                              secondary={`${item.category_lookup?.category || "Uncategorized"} — $${Number(item.amount).toLocaleString()}`}
+                              //primary={`${item.description || "(No description)"}`}
+                              //secondary={`${item.category_lookup?.category || "Uncategorized"} — $${Number(item.amount).toLocaleString()}`}
+                              primary={`${item.category_lookup?.category || "Uncategorized"} — $${Number(item.amount).toLocaleString()}`}
                             />
                           </ListItem>
                         ))}
