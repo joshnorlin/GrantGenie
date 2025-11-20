@@ -44,6 +44,52 @@ serve(async (req) => {
       getRecentTransactions(supabase, grant_id, category_id, 3)
     ]);
 
+    // --- 3b. Enforce hard budget constraint BEFORE AI ---
+    const categoryBudget = budget.find(b => b.category_id === category_id);
+
+    if (!categoryBudget) {
+      return new Response(
+        JSON.stringify({
+          error: "No budget defined for this category",
+          code: "NO_BUDGET_CONFIGURED",
+        }),
+        { status: 400, headers: corsHeaders }
+      );
+    }
+
+    const spentSoFar = Number(categoryBudget.spent || 0);
+    const budgeted = Number(categoryBudget.budgeted || 0);
+
+    if (spentSoFar + Number(amount) > budgeted) {
+      // Immediately reject and update transaction
+      await supabase
+        .from("transactions")
+        .update({
+          status: "REJECTED",
+          confidence_score: 100, // because it’s a definitive financial rule-break
+        })
+        .eq("transaction_id", transaction.transaction_id);
+
+      return new Response(
+        JSON.stringify({
+          transaction_id: transaction.transaction_id,
+          decision: "REJECTED",
+          reason: "This transaction exceeds the allocated budget for this category.",
+          over_budget_details: {
+            spent_so_far: spentSoFar,
+            attempted_addition: Number(amount),
+            budgeted,
+            amount_over: spentSoFar + Number(amount) - budgeted,
+          },
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+
     // 4. Prepare AI content
     const content = JSON.stringify({
       transaction,
