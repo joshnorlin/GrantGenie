@@ -38,7 +38,12 @@ export default function TransactionModal({ open, onClose }: Props) {
   const [grants, setGrants] = useState<Grant[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("");
+
+  // FOR TESTING THE TRANSACTION SUBMISSION RIGHT NOW.
+  //const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("Salaries & Wages");
+
+
   const [amount, setAmount] = useState<number | "">("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
@@ -77,6 +82,7 @@ export default function TransactionModal({ open, onClose }: Props) {
   }, [open, fetchUserGrants]);
 
   // Fetch categories when a grant is selected
+  
   useEffect(() => {
     if (selectedGrant) {
       fetchCategories(selectedGrant);
