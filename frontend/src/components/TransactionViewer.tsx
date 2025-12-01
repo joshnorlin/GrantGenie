@@ -1,5 +1,18 @@
 import { useEffect, useState, useCallback } from "react";
-import { Paper, Typography, CircularProgress, List, ListItem, ListItemText, Divider } from "@mui/material";
+import {
+  Paper,
+  Typography,
+  CircularProgress,
+  List,
+  ListItem,
+  Button,
+  Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableRow,
+  Collapse,
+} from "@mui/material";
 import { useSupabase } from "../contexts/SessionProvider";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -25,25 +38,18 @@ async function selectAllTransactions(client: SupabaseClient) {
   return data;
 }
 
-interface Grant {
-  grant_id: number;
-  name: string;
-  grant_number: string;
-}
-
-interface Transaction {
-  transaction_id: number;
-  grant_id: number;
-  amount: number;
-  additional_details: string | null;
-  created_at: string;
-}
-
 export default function TransactionViewer() {
   const supabase = useSupabase();
-  const [grants, setGrants] = useState<Grant[]>([]);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [grants, setGrants] = useState<any[]>([]);
+  const [transactions, setTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+
+  // Which transaction is expanded?
+  const [expanded, setExpanded] = useState<number | null>(null);
+
+  const toggleExpand = (id: number) => {
+    setExpanded(expanded === id ? null : id);
+  };
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -66,20 +72,20 @@ export default function TransactionViewer() {
     fetchData();
   }, [fetchData]);
 
-  // Group transactions by grant_id for faster lookup
-  const transactionsByGrant: Record<number, Transaction[]> = transactions.reduce(
-    (acc, t) => {
+  // Group transactions by grant
+  const transactionsByGrant = transactions.reduce(
+    (acc: Record<number, any[]>, t: any) => {
       if (!acc[t.grant_id]) acc[t.grant_id] = [];
       acc[t.grant_id].push(t);
       return acc;
     },
-    {} as Record<number, Transaction[]>
+    {}
   );
 
   return (
     <Paper elevation={3} sx={{ mt: 4, p: 3, width: "80%" }}>
       <Typography variant="h6" gutterBottom>
-        All Transactions
+        All Transactions (Table View)
       </Typography>
 
       {loading ? (
@@ -89,28 +95,77 @@ export default function TransactionViewer() {
       ) : (
         grants.map((grant) => {
           const grantTransactions = transactionsByGrant[grant.grant_id] || [];
+
           return (
             <div key={grant.grant_id} style={{ marginBottom: 20 }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 'bold', mb: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 1 }}>
                 {grant.name} (Grant #{grant.grant_number})
               </Typography>
+
               <Divider sx={{ mb: 1 }} />
+
               {grantTransactions.length === 0 ? (
-                <Typography variant="body2" color="text.secondary">
-                  No transactions yet.
-                </Typography>
+                <Typography>No transactions yet.</Typography>
               ) : (
                 <List dense>
-                  {grantTransactions.map((t) => (
-                    <ListItem key={t.transaction_id}>
-                      <ListItemText
-                        primary={`$${t.amount}`}
-                        secondary={`${t.additional_details || "(No description)"} — ${new Date(
-                          t.created_at
-                        ).toLocaleString()}`}
-                      />
-                    </ListItem>
-                  ))}
+                  {grantTransactions.map((t) => {
+                    const isOpen = expanded === t.transaction_id;
+
+                    return (
+                      <div key={t.transaction_id}>
+                        {/* CLICKABLE BUTTON */}
+                        <ListItem sx={{ p: 0, mb: 1 }}>
+                          <Button
+                            fullWidth
+                            variant="contained"
+                            color={isOpen ? "secondary" : "primary"}
+                            onClick={() => toggleExpand(t.transaction_id)}
+                            sx={{
+                              justifyContent: "space-between",
+                              textTransform: "none",
+                              fontWeight: "bold",
+                              borderRadius: 2,
+                              py: 1.2,
+                            }}
+                          >
+                            Transaction #{t.transaction_id} — ${t.amount}
+                            <span>{isOpen ? "▲" : "▼"}</span>
+                          </Button>
+                        </ListItem>
+
+                        {/* EXPAND/COLLAPSE TABLE */}
+                        <Collapse in={isOpen} timeout="auto" unmountOnExit>
+                          <Paper
+                            elevation={1}
+                            sx={{ p: 2, mb: 2, backgroundColor: "#fafafa" }}
+                          >
+                            <Table size="small">
+                              <TableBody>
+                                {Object.entries(t).map(([key, value]) => (
+                                  <TableRow key={key}>
+                                    <TableCell
+                                      sx={{
+                                        fontWeight: "bold",
+                                        width: "30%",
+                                      }}
+                                    >
+                                      {key}
+                                    </TableCell>
+                                    <TableCell>
+                                      {typeof value === "string" &&
+                                      value.startsWith("20")
+                                        ? new Date(value).toLocaleString()
+                                        : String(value)}
+                                    </TableCell>
+                                  </TableRow>
+                                ))}
+                              </TableBody>
+                            </Table>
+                          </Paper>
+                        </Collapse>
+                      </div>
+                    );
+                  })}
                 </List>
               )}
             </div>

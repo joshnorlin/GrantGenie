@@ -119,7 +119,7 @@ export default function BudgetEntryModal({ open, onClose, grantID }: BudgetEntry
 
         <Box display="flex" justifyContent="flex-end" mt={2}>
           <Button onClick={onClose} sx={{ mr: 1 }}>
-            Cancel
+            Close
           </Button>
         </Box>
       </Box>
