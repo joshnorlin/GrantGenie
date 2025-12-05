@@ -3,10 +3,10 @@ import { Box, Typography } from "@mui/material";
 export default function Home() {
   return (
     <Box p={3}>
-      <Typography variant="h4" gutterBottom>
+      <Typography variant="h4" >
         Grant Genie
       </Typography>
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" >
         We help grant your financial wishes.
       </Typography>
       <img 
@@ -14,7 +14,7 @@ export default function Home() {
         alt="Logo" 
         style={{ width: 200, borderRadius: 8 }}
       />
-      <Typography variant="h6" gutterBottom>
+      <Typography variant="h6" >
         About Us:
       </Typography>
       <Typography paragraph>
