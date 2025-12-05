@@ -6,7 +6,7 @@ export default function Home() {
       <Typography variant="h4" >
         Grant Genie
       </Typography>
-      <Typography variant="h6" >
+      <Typography variant="h6" gutterBottom>
         We help grant your financial wishes.
       </Typography>
       <img 

@@ -115,22 +115,62 @@ export default function TransactionViewer() {
                       <div key={t.transaction_id}>
                         {/* CLICKABLE BUTTON */}
                         <ListItem sx={{ p: 0, mb: 1 }}>
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            color={isOpen ? "secondary" : "primary"}
-                            onClick={() => toggleExpand(t.transaction_id)}
+                        <ListItem sx={{ p: 0, mb: 1, display: "flex", gap: 1 }}>
+                        {/* Main Dropdown Button */}
+                        <Button
+                          variant="contained"
+                          color={isOpen ? "secondary" : "primary"}
+                          onClick={() => toggleExpand(t.transaction_id)}
+                          sx={{
+                            flexGrow: 1,
+                            justifyContent: "space-between",
+                            textTransform: "none",
+                            fontWeight: "bold",
+                            borderRadius: 2,
+                            py: 1.2,
+                          }}
+                        >
+                          Transaction #{t.transaction_id} — ${t.amount}
+                          <span>{isOpen ? "▲" : "▼"}</span>
+                        </Button>
+
+                        {/* Status or Review Buttons */}
+                        {t.status === "REQUIRES_REVIEW" ? (
+                          <>
+                            {/* Approve */}
+                            <Button
+                              variant="contained"
+                              color="success"
+                              sx={{ minWidth: 50 }}
+                              onClick={() => console.log("Approve", t.transaction_id)}
+                            >
+                              ✔
+                            </Button>
+
+                            {/* Reject */}
+                            <Button
+                              variant="contained"
+                              color="error"
+                              sx={{ minWidth: 50 }}
+                              onClick={() => console.log("Reject", t.transaction_id)}
+                            >
+                              ✖
+                            </Button>
+                          </>
+                        ) : (
+                          // Otherwise show status text
+                          <Typography
                             sx={{
-                              justifyContent: "space-between",
-                              textTransform: "none",
+                              minWidth: 120,
+                              textAlign: "center",
                               fontWeight: "bold",
-                              borderRadius: 2,
-                              py: 1.2,
+                              p: 1,
                             }}
                           >
-                            Transaction #{t.transaction_id} — ${t.amount}
-                            <span>{isOpen ? "▲" : "▼"}</span>
-                          </Button>
+                            {t.status}
+                          </Typography>
+                        )}
+                      </ListItem>
                         </ListItem>
 
                         {/* EXPAND/COLLAPSE TABLE */}
