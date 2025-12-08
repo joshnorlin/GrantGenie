@@ -35,3 +35,16 @@ export async function insertGrantBudgetItems(
   console.log("Bulk inserted budget items:", data);
   return data;
 }
+
+export async function selectGrantBudgetItems(
+  client: SupabaseClient,
+  grantId: number
+) {
+  const { data, error } = await client
+    .from("grant_budget_items")
+    .select("amount, category_lookup(category)")
+    .eq("grant_id", grantId);
+
+  if (error) throw error;
+  return data || [];
+}

@@ -13,6 +13,9 @@ import BudgetEntryModal from "./BudgetEntryModal";
 import { BudgetTab } from "./BudgetTab";
 import { InstitutionalRulesTab } from "./InstitutionalRulesTab";
 import { SpendingOverviewTab } from "./SpendingOverviewTab";
+import { selectGrantBudgetItems } from "../utils/supabase-client-queries/grantBudgets";
+import { selectInstitutionalRules } from "../utils/supabase-client-queries/institutionalRules";
+import { selectTransactionsByGrant } from "../utils/supabase-client-queries/transactions";
 
 interface GrantDetailsModalProps {
   open: boolean;
@@ -37,33 +40,9 @@ export function GrantDetailsModal({ open, onClose, grant, supabase }: GrantDetai
 
       try {
         const [budgetData, ruleData, transactionData] = await Promise.all([
-          supabase
-            .from("grant_budget_items")
-            .select("amount, category_lookup(category)")
-            .eq("grant_id", grant.grant_id)
-            .then(({ data, error }) => {
-              if (error) throw error;
-              return data || [];
-            }),
-          
-          supabase
-            .from("institutional_rules")
-            .select("ruleset")
-            .eq("grant_id", grant.grant_id)
-            .single()
-            .then(({ data, error }) => {
-              if (error && error.code !== "PGRST116") throw error;
-              return data?.ruleset || null;
-            }),
-          
-          supabase
-            .from("transactions")
-            .select("amount, created_at, description")
-            .eq("grant_id", grant.grant_id)
-            .then(({ data, error }) => {
-              if (error && error.code !== "PGRST116") throw error;
-              return data || [];
-            }),
+          selectGrantBudgetItems(supabase, grant.grant_id),
+          selectInstitutionalRules(supabase, grant.grant_id),
+          selectTransactionsByGrant(supabase, grant.grant_id),
         ]);
 
         setBudgetItems(budgetData);
