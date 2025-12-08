@@ -196,10 +196,20 @@ export default function TransactionViewer() {
                               textAlign: "center",
                               fontWeight: "bold",
                               p: 1,
+                              borderRadius: 1,
+                              color: "white", // text color
+                              backgroundColor: (() => {
+                                switch (t.status?.toUpperCase()) {
+                                  case "APPROVED":
+                                    return "success.main";
+                                  case "REJECTED":
+                                    return "error.main";
+                                  default:
+                                    return "warning.main"; // pending or other
+                                }
+                              })(),
                             }}
-                          >
-                            {t.status}
-                          </Typography>
+                          > {t.status || "PENDING"} </Typography>
                         )}
                       </ListItem>
                         </ListItem>
