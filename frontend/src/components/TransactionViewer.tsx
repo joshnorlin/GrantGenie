@@ -38,6 +38,19 @@ async function selectAllTransactions(client: SupabaseClient) {
   return data;
 }
 
+async function updateTransactionStatus(
+  client: SupabaseClient,
+  transactionId: number,
+  newStatus: string
+) {
+  const { error } = await client
+    .from("transactions")
+    .update({ status: newStatus })
+    .eq("transaction_id", transactionId);
+
+  if (error) throw error;
+}
+
 export default function TransactionViewer() {
   const supabase = useSupabase();
   const [grants, setGrants] = useState<any[]>([]);
@@ -81,6 +94,24 @@ export default function TransactionViewer() {
     },
     {}
   );
+
+  const handleApprove = async (transactionId: number) => {
+    try {
+      await updateTransactionStatus(supabase, transactionId, "APPROVED");
+      fetchData(); // refresh after update
+    } catch (err) {
+      console.error("Approval failed:", err);
+    }
+  };
+  
+  const handleReject = async (transactionId: number) => {
+    try {
+      await updateTransactionStatus(supabase, transactionId, "REJECTED");
+      fetchData(); // refresh after update
+    } catch (err) {
+      console.error("Rejection failed:", err);
+    }
+  };
 
   return (
     <Paper elevation={3} sx={{ mt: 4, p: 3, width: "80%" }}>
@@ -142,7 +173,7 @@ export default function TransactionViewer() {
                               variant="contained"
                               color="success"
                               sx={{ minWidth: 50 }}
-                              onClick={() => console.log("Approve", t.transaction_id)}
+                              onClick={() => handleApprove(t.transaction_id)}
                             >
                               ✔
                             </Button>
@@ -152,7 +183,7 @@ export default function TransactionViewer() {
                               variant="contained"
                               color="error"
                               sx={{ minWidth: 50 }}
-                              onClick={() => console.log("Reject", t.transaction_id)}
+                              onClick={() => handleReject(t.transaction_id)}
                             >
                               ✖
                             </Button>
