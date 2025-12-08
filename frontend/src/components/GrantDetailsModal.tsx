@@ -4,16 +4,15 @@ import {
   Box,
   Typography,
   CircularProgress,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
   Button,
   Tabs,
   Tab,
 } from "@mui/material";
 import { SupabaseClient } from "@supabase/supabase-js";
 import BudgetEntryModal from "./BudgetEntryModal";
+import { BudgetTab } from "./BudgetTab";
+import { InstitutionalRulesTab } from "./InstitutionalRulesTab";
+import { SpendingOverviewTab } from "./SpendingOverviewTab";
 
 interface GrantDetailsModalProps {
   open: boolean;
@@ -32,38 +31,44 @@ export function GrantDetailsModal({ open, onClose, grant, supabase }: GrantDetai
 
   useEffect(() => {
     if (!grant) return;
+    
     const fetchDetails = async () => {
       setLoading(true);
 
       try {
-        // 1️⃣ Budget items
-        const { data: budgetData, error: budgetError } = await supabase
-          .from("grant_budget_items")
-          .select("amount, category_lookup(category)")
-          .eq("grant_id", grant.grant_id);
+        const [budgetData, ruleData, transactionData] = await Promise.all([
+          supabase
+            .from("grant_budget_items")
+            .select("amount, category_lookup(category)")
+            .eq("grant_id", grant.grant_id)
+            .then(({ data, error }) => {
+              if (error) throw error;
+              return data || [];
+            }),
+          
+          supabase
+            .from("institutional_rules")
+            .select("ruleset")
+            .eq("grant_id", grant.grant_id)
+            .single()
+            .then(({ data, error }) => {
+              if (error && error.code !== "PGRST116") throw error;
+              return data?.ruleset || null;
+            }),
+          
+          supabase
+            .from("transactions")
+            .select("amount, created_at, description")
+            .eq("grant_id", grant.grant_id)
+            .then(({ data, error }) => {
+              if (error && error.code !== "PGRST116") throw error;
+              return data || [];
+            }),
+        ]);
 
-        if (budgetError) throw budgetError;
-
-        // 2️⃣ Institutional rules
-        const { data: ruleData, error: ruleError } = await supabase
-          .from("institutional_rules")
-          .select("ruleset")
-          .eq("grant_id", grant.grant_id)
-          .single();
-
-        if (ruleError && ruleError.code !== "PGRST116") throw ruleError;
-
-        // 3️⃣ Transactions
-        const { data: transactionData, error: transactionError } = await supabase
-          .from("transactions")
-          .select("amount, created_at")
-          .eq("grant_id", grant.grant_id);
-
-        if (transactionError && transactionError.code !== "PGRST116") throw transactionError;
-
-        setBudgetItems(budgetData || []);
-        setRules(ruleData?.ruleset || null);
-        setTransactions(transactionData || []);
+        setBudgetItems(budgetData);
+        setRules(ruleData);
+        setTransactions(transactionData);
       } catch (err) {
         console.error("Error fetching grant details:", err);
       } finally {
@@ -76,9 +81,8 @@ export function GrantDetailsModal({ open, onClose, grant, supabase }: GrantDetai
 
   if (!grant) return null;
 
-  const totalBudget: number = budgetItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
-  const totalSpent: number = transactions.reduce((sum, t) => sum + Number(t.amount || 0), 0);
-  const percentUsed: number = totalBudget ? +((totalSpent / totalBudget) * 100).toFixed(1) : 0;
+  const totalBudget = budgetItems.reduce((sum, item) => sum + Number(item.amount || 0), 0);
+  const totalSpent = transactions.reduce((sum, t) => sum + Number(t.amount || 0), 0);
 
   return (
     <>
@@ -120,77 +124,21 @@ export function GrantDetailsModal({ open, onClose, grant, supabase }: GrantDetai
           ) : (
             <>
               {tab === 0 && (
-                <Box>
-                  <Typography variant="h6">Budget Line Items</Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  {budgetItems.length === 0 ? (
-                    <>
-                      <Typography>No budget items found.</Typography>
-                      <Button variant="contained" onClick={() => setBudgetModalOpen(true)}>Add Budget</Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="contained" onClick={() => setBudgetModalOpen(true)}>Edit Budget</Button>
-                      <List dense>
-                        {budgetItems.map((item, i) => (
-                          <ListItem key={i}>
-                            <ListItemText
-                              //primary={`${item.description || "(No description)"}`}
-                              //secondary={`${item.category_lookup?.category || "Uncategorized"} — $${Number(item.amount).toLocaleString()}`}
-                              primary={`${item.category_lookup?.category || "Uncategorized"} — $${Number(item.amount).toLocaleString()}`}
-                            />
-                          </ListItem>
-                        ))}
-                      </List>
-                    </>
-                  )}
-                </Box>
+                <BudgetTab
+                  budgetItems={budgetItems}
+                  onAddBudget={() => setBudgetModalOpen(true)}
+                  onEditBudget={() => setBudgetModalOpen(true)}
+                />
               )}
 
-              {tab === 1 && (
-                <Box>
-                  <Typography variant="h6">Institutional Rules</Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  {rules ? (
-                    <List dense>
-                      {Object.entries(rules).map(([key, val]) => (
-                        <ListItem key={key}>
-                          <ListItemText primary={key} secondary={String(val)} />
-                        </ListItem>
-                      ))}
-                    </List>
-                  ) : (
-                    <Typography>No institutional rules found.</Typography>
-                  )}
-                </Box>
-              )}
+              {tab === 1 && <InstitutionalRulesTab rules={rules} />}
 
               {tab === 2 && (
-                <Box>
-                  <Typography variant="h6">Spending Overview</Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  <Typography>Total Budget: ${totalBudget.toLocaleString()}</Typography>
-                  <Typography>Total Spent: ${totalSpent.toLocaleString()}</Typography>
-                  <Typography color={percentUsed > 90 ? "error" : "success.main"}>
-                    {percentUsed}% of budget used
-                  </Typography>
-                  <Divider sx={{ my: 2 }} />
-                  <Typography variant="subtitle1">Recent Transactions</Typography>
-                  {transactions.length === 0 ? (
-                    <Typography>No transactions recorded.</Typography>
-                  ) : (
-                    <List dense>
-                      {transactions.map((t, i) => (
-                        <ListItem key={i}>
-                          <ListItemText
-                            primary={t.description || "(No description)"}
-                            secondary={`${new Date(t.created_at).toLocaleDateString()} — $${t.amount}`}
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
-                  )}
-                </Box>
+                <SpendingOverviewTab
+                  totalBudget={totalBudget}
+                  totalSpent={totalSpent}
+                  transactions={transactions}
+                />
               )}
             </>
           )}
@@ -202,11 +150,10 @@ export function GrantDetailsModal({ open, onClose, grant, supabase }: GrantDetai
           </Box>
         </Box>
       </Modal>
+      
       <BudgetEntryModal
         open={budgetModalOpen}
-        onClose={() => {
-          setBudgetModalOpen(false);
-        }}
+        onClose={() => setBudgetModalOpen(false)}
         grantID={grant.grant_id}
       />
     </>
