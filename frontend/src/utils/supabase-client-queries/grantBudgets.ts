@@ -1,5 +1,5 @@
 import type { Session, SupabaseClient } from "@supabase/supabase-js";
-import type { GrantBudgetItem } from "../../types/grantBudgets";
+import type { GrantBudgetItem } from "../../types/types";
 
 export async function insertGrantBudgetItems(
   client: SupabaseClient,

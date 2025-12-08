@@ -2,7 +2,7 @@ import { Alert, Box, Button, Modal, Typography } from "@mui/material";
 import { budgetCategories } from "../constants/categories";
 import React from "react";
 import NumberInputField from "./NumberInputField";
-import type { GrantBudgetItem, GrantBudgetItemValue } from "../types/grantBudgets";
+import type { GrantBudgetItem, GrantBudgetItemValue } from "../types/types";
 import { useSession, useSupabase } from "../contexts/SessionProvider";
 import { insertGrantBudgetItems } from "../utils/supabase-client-queries/grantBudgets";
 

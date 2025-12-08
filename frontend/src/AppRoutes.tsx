@@ -7,6 +7,7 @@ import Transactions from "./pages/Transactions";
 import NavigationTabs from "./components/NavigationTabs";
 import { ThemeSupa } from "@supabase/auth-ui-shared";
 import { logout } from "./utils/supabase-client-queries/auth";
+import { Box, Typography } from "@mui/material";
 
 export const AppRoutes = () => {
   const session = useSession();
@@ -14,7 +15,20 @@ export const AppRoutes = () => {
 
   if (!session) {
     return (
-      <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} />
+      <Box sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
+        <Box sx={{
+          mt: 5,
+          minWidth: 500,
+        }}>
+          <Typography variant="h3">GrantGenie</Typography>
+          <Typography variant="subtitle1">Helping you grant your financial wishes</Typography>
+          <Auth supabaseClient={supabase} appearance={{ theme: ThemeSupa }} />
+        </Box>
+      </Box>
     );
   }
 

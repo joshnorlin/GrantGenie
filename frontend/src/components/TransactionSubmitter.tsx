@@ -11,8 +11,9 @@ import {
   Typography,
 } from "@mui/material";
 import { selectGrants } from "../utils/supabase-client-queries/grants";
-import { selectAllCategories, selectCategoriesByGrant } from "../utils/supabase-client-queries/categories";
+import { selectCategoriesByGrant } from "../utils/supabase-client-queries/categories";
 import { useSupabase } from "../contexts/SessionProvider";
+import type { VerifyTransactionResponse } from "../types/types";
 
 interface Grant {
   grant_id: any;
@@ -31,6 +32,7 @@ interface Category {
 interface Props {
   open: boolean;
   onClose: () => void;
+  onTransactionSubmitted?: () => void; // callback after successful submit
 }
 
 export default function TransactionModal({ open, onClose }: Props) {
@@ -39,10 +41,7 @@ export default function TransactionModal({ open, onClose }: Props) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedGrant, setSelectedGrant] = useState<string>("");
 
-  // FOR TESTING THE TRANSACTION SUBMISSION RIGHT NOW.
-  //const [selectedCategory, setSelectedCategory] = useState<string>("");
-  const [selectedCategory, setSelectedCategory] = useState<string>("Salaries & Wages");
-
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
 
   const [amount, setAmount] = useState<number | "">("");
   const [description, setDescription] = useState("");
@@ -96,15 +95,20 @@ export default function TransactionModal({ open, onClose }: Props) {
   // -----------------------
   const handleSubmit = async () => {
     if (!selectedGrant || !selectedCategory || !amount || !description) return;
-
+  
     setLoading(true);
     setResponse(null);
-
+  
     try {
-      const token = await supabase.auth.getSession().then((res) => res.data.session?.access_token);
-
+      const {
+        data: { session }
+      } = await supabase.auth.getSession();
+  
+      const token = session?.access_token;
+      if (!token) throw new Error("No session token found");
+  
       const res = await fetch(
-        "https://ihoqewwgkpjmkgwoenck.supabase.co/functions/v1/verify-transaction",
+        "http://localhost:8000",
         {
           method: "POST",
           headers: {
@@ -114,14 +118,26 @@ export default function TransactionModal({ open, onClose }: Props) {
           body: JSON.stringify({
             grant_id: selectedGrant,
             category_id: selectedCategory,
-            amount,
+            amount: Number(amount),
             description,
           }),
         }
       );
-
-      const data = await res.json();
-      setResponse(data);
+  
+      let data: VerifyTransactionResponse | { error: string };
+      try {
+        data = await res.json();
+      } catch {
+        throw new Error("Response was not valid JSON");
+      }
+  
+      if (!res.ok) {
+        // Data should be { error: string }
+        throw new Error((data as any)?.error || "Unknown error");
+      }
+  
+      setResponse(data);  // ← stores the real verdict
+  
     } catch (err: any) {
       console.error(err);
       setResponse({ error: err.message });
@@ -129,6 +145,7 @@ export default function TransactionModal({ open, onClose }: Props) {
       setLoading(false);
     }
   };
+  
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
