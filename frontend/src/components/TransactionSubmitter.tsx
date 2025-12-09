@@ -89,10 +89,7 @@ export default function TransactionModal({ open, onClose }: Props) {
       setCategories([]);
     }
   }, [selectedGrant, fetchCategories]);
-
-  // -----------------------
-  // Submit transaction
-  // -----------------------
+  
   const handleSubmit = async () => {
     if (!selectedGrant || !selectedCategory || !amount || !description) return;
   
