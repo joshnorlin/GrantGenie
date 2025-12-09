@@ -77,6 +77,12 @@ export default function TransactionViewer() {
     fetchTransactions(supabase, true);
   };
 
+  const handleReviewRequest = async (transactionId: number) => {
+    await updateTransactionStatus(supabase, transactionId, "REQUIRES_REVIEW");
+    invalidateCache();
+    fetchTransactions(supabase, true);
+  };
+
   return (
     <Paper elevation={3} sx={{ mt: 4, p: 3, width: "80%" }}>
       <Typography variant="h6" gutterBottom>
@@ -171,6 +177,17 @@ export default function TransactionViewer() {
                             >
                               {t.status || "PENDING"}
                             </Typography>
+                          )}
+                          {t.status === "REJECTED" && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="warning"
+                              onClick={() => handleReviewRequest(t.transaction_id)}
+                              sx={{ ml: 1 }}
+                            >
+                              Request Manual Review
+                            </Button>
                           )}
                         </ListItem>
 
