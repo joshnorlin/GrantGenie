@@ -53,7 +53,12 @@ export async function selectGrantBudgetItems(
     .eq("grant_id", grantId)
     .order("created_at", { ascending: false });
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching budget items:", error);
+    throw error;
+  }
+  
+  console.log("Raw budget data from DB:", data);
   
   // Get only the most recent entry per category
   const latestByCategory = new Map();
@@ -63,5 +68,7 @@ export async function selectGrantBudgetItems(
     }
   });
   
-  return Array.from(latestByCategory.values());
+  const result = Array.from(latestByCategory.values());
+  console.log("Processed budget items:", result);
+  return result;
 }

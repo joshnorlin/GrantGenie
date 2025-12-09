@@ -308,21 +308,13 @@ export function SpendingOverviewTab({ totalBudget, totalSpent, transactions }: S
                       <Typography variant="body2" fontWeight="bold" noWrap>
                         {t.category_lookup?.category || "Uncategorized"}
                       </Typography>
-                      {t.category_lookup?.super_category && (
-                        <Chip 
-                          label={t.category_lookup.super_category} 
-                          size="small" 
-                          variant="outlined"
-                          sx={{ height: 20, fontSize: "0.7rem" }}
-                        />
-                      )}
                     </Box>
                     <Box display="flex" alignItems="center" gap={1.5}>
                       <Typography variant="caption" color="text.secondary">
                         {new Date(t.created_at).toLocaleDateString()}
                       </Typography>
                       <Chip 
-                        icon={getStatusIcon(t.status)}
+                        {...(getStatusIcon(t.status) && { icon: getStatusIcon(t.status)! })}
                         label={t.status || "pending"}
                         size="small"
                         color={getStatusColor(t.status)}

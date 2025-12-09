@@ -18,8 +18,7 @@ export async function selectTransactionsByGrant(
       human_verified,
       category_lookup:category_id (
         category_id,
-        category,
-        super_category
+        category
       )
     `)
     .eq("grant_id", grantId)
