@@ -7,8 +7,11 @@ import {
   Button,
   Tabs,
   Tab,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { SupabaseClient } from "@supabase/supabase-js";
+import FileDownloadIcon from "@mui/icons-material/FileDownload";
 import BudgetEntryModal from "./BudgetEntryModal";
 import { BudgetTab } from "./BudgetTab";
 import { InstitutionalRulesTab } from "./InstitutionalRulesTab";
@@ -18,6 +21,7 @@ import { selectGrantBudgetItems } from "../utils/supabase-client-queries/grantBu
 import { selectInstitutionalRules } from "../utils/supabase-client-queries/institutionalRules";
 import { selectTransactionsByGrant } from "../utils/supabase-client-queries/transactions";
 import { deleteGrant } from "../utils/supabase-client-queries/grants";
+import { useGrantExport } from "../hooks/useGrantExport";
 
 interface GrantDetailsModalProps {
   open: boolean;
@@ -34,12 +38,24 @@ export function GrantDetailsModal({ open, onClose, grant, supabase, onGrantDelet
   const [rules, setRules] = useState<any>(null);
   const [transactions, setTransactions] = useState<any[]>([]);
   const [tab, setTab] = useState(0);
+  const [exportSuccess, setExportSuccess] = useState(false);
+  const { exportGrant, isLoading: exportLoading, error: exportError } = useGrantExport(supabase, {
+    onSuccess: () => setExportSuccess(true),
+  });
 
   const handleDeleteGrant = async () => {
     await deleteGrant(supabase, grant.grant_id);
     onClose();
     if (onGrantDeleted) {
       onGrantDeleted();
+    }
+  };
+
+  const handleExportGrant = async () => {
+    try {
+      await exportGrant(grant.grant_id);
+    } catch (err) {
+      console.error("Export failed:", err);
     }
   };
 
@@ -149,7 +165,19 @@ export function GrantDetailsModal({ open, onClose, grant, supabase, onGrantDelet
           </Box>
 
           {/* Fixed Footer */}
-          <Box sx={{ p: 2, borderTop: 1, borderColor: "divider", display: "flex", justifyContent: "flex-end" }}>
+          <Box sx={{ p: 2, borderTop: 1, borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Box>
+              <Button 
+                variant="contained" 
+                color="success"
+                onClick={handleExportGrant}
+                disabled={exportLoading}
+                startIcon={<FileDownloadIcon />}
+                size="large"
+              >
+                {exportLoading ? "Exporting..." : "Export to Excel"}
+              </Button>
+            </Box>
             <Button variant="outlined" onClick={onClose} size="large">
               Close
             </Button>
@@ -181,6 +209,28 @@ export function GrantDetailsModal({ open, onClose, grant, supabase, onGrantDelet
           fetchDetails();
         }}
       />
+
+      <Snackbar 
+        open={exportSuccess} 
+        autoHideDuration={4000} 
+        onClose={() => setExportSuccess(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert onClose={() => setExportSuccess(false)} severity="success" sx={{ width: "100%" }}>
+          Grant data exported successfully!
+        </Alert>
+      </Snackbar>
+
+      <Snackbar 
+        open={!!exportError} 
+        autoHideDuration={6000} 
+        onClose={() => {}}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+      >
+        <Alert severity="error" sx={{ width: "100%" }}>
+          Export failed: {exportError?.message}
+        </Alert>
+      </Snackbar>
     </>
   );
 }
