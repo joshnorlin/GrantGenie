@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Paper,
   Typography,
@@ -12,50 +12,15 @@ import {
   TableCell,
   TableRow,
   Collapse,
+  Box,
 } from "@mui/material";
 import { useSupabase } from "../contexts/SessionProvider";
-import type { SupabaseClient } from "@supabase/supabase-js";
-
-// Fetch all grants
-async function selectAllGrants(client: SupabaseClient) {
-  const { data, error } = await client
-    .from("grants")
-    .select("*")
-    .order("grant_id", { ascending: true });
-
-  if (error) throw error;
-  return data;
-}
-
-// Fetch all transactions
-async function selectAllTransactions(client: SupabaseClient) {
-  const { data, error } = await client
-    .from("transactions")
-    .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) throw error;
-  return data;
-}
-
-async function updateTransactionStatus(
-  client: SupabaseClient,
-  transactionId: number,
-  newStatus: string
-) {
-  const { error } = await client
-    .from("transactions")
-    .update({ status: newStatus })
-    .eq("transaction_id", transactionId);
-
-  if (error) throw error;
-}
+import { updateTransactionStatus } from "../utils/supabase-client-queries/transactions";
+import { useDataCache } from "../contexts/DataCacheProvider";
 
 export default function TransactionViewer() {
   const supabase = useSupabase();
-  const [grants, setGrants] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { grants, transactions, loading, fetchGrants, fetchTransactions, invalidateCache } = useDataCache();
 
   // Which transaction is expanded?
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -64,26 +29,10 @@ export default function TransactionViewer() {
     setExpanded(expanded === id ? null : id);
   };
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const grantsData = await selectAllGrants(supabase);
-      const transactionsData = await selectAllTransactions(supabase);
-
-      setGrants(grantsData || []);
-      setTransactions(transactionsData || []);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setGrants([]);
-      setTransactions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [supabase]);
-
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchGrants(supabase);
+    fetchTransactions(supabase);
+  }, [supabase, fetchGrants, fetchTransactions]);
 
   // Group transactions by grant
   const transactionsByGrant = transactions.reduce(
@@ -98,7 +47,8 @@ export default function TransactionViewer() {
   const handleApprove = async (transactionId: number) => {
     try {
       await updateTransactionStatus(supabase, transactionId, "APPROVED");
-      fetchData(); // refresh after update
+      invalidateCache();
+      await fetchTransactions(supabase, true);
     } catch (err) {
       console.error("Approval failed:", err);
     }
@@ -107,7 +57,8 @@ export default function TransactionViewer() {
   const handleReject = async (transactionId: number) => {
     try {
       await updateTransactionStatus(supabase, transactionId, "REJECTED");
-      fetchData(); // refresh after update
+      invalidateCache();
+      await fetchTransactions(supabase, true);
     } catch (err) {
       console.error("Rejection failed:", err);
     }
@@ -120,7 +71,9 @@ export default function TransactionViewer() {
       </Typography>
 
       {loading ? (
-        <CircularProgress />
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight={300}>
+          <CircularProgress />
+        </Box>
       ) : grants.length === 0 ? (
         <Typography>No grants found.</Typography>
       ) : (
@@ -145,73 +98,73 @@ export default function TransactionViewer() {
                     return (
                       <div key={t.transaction_id}>
                         {/* CLICKABLE BUTTON */}
-                        <ListItem sx={{ p: 0, mb: 1 }}>
                         <ListItem sx={{ p: 0, mb: 1, display: "flex", gap: 1 }}>
-                        {/* Main Dropdown Button */}
-                        <Button
-                          variant="contained"
-                          color={isOpen ? "secondary" : "primary"}
-                          onClick={() => toggleExpand(t.transaction_id)}
-                          sx={{
-                            flexGrow: 1,
-                            justifyContent: "space-between",
-                            textTransform: "none",
-                            fontWeight: "bold",
-                            borderRadius: 2,
-                            py: 1.2,
-                          }}
-                        >
-                          Transaction #{t.transaction_id} — ${t.amount}
-                          <span>{isOpen ? "▲" : "▼"}</span>
-                        </Button>
-
-                        {/* Status or Review Buttons */}
-                        {t.status === "REQUIRES_REVIEW" ? (
-                          <>
-                            {/* Approve */}
-                            <Button
-                              variant="contained"
-                              color="success"
-                              sx={{ minWidth: 50 }}
-                              onClick={() => handleApprove(t.transaction_id)}
-                            >
-                              ✔
-                            </Button>
-
-                            {/* Reject */}
-                            <Button
-                              variant="contained"
-                              color="error"
-                              sx={{ minWidth: 50 }}
-                              onClick={() => handleReject(t.transaction_id)}
-                            >
-                              ✖
-                            </Button>
-                          </>
-                        ) : (
-                          // Otherwise show status text
-                          <Typography
+                          {/* Main Dropdown Button */}
+                          <Button
+                            variant="contained"
+                            color={isOpen ? "secondary" : "primary"}
+                            onClick={() => toggleExpand(t.transaction_id)}
                             sx={{
-                              minWidth: 120,
-                              textAlign: "center",
+                              flexGrow: 1,
+                              justifyContent: "space-between",
+                              textTransform: "none",
                               fontWeight: "bold",
-                              p: 1,
-                              borderRadius: 1,
-                              color: "white", // text color
-                              backgroundColor: (() => {
-                                switch (t.status?.toUpperCase()) {
-                                  case "APPROVED":
-                                    return "success.main";
-                                  case "REJECTED":
-                                    return "error.main";
-                                  default:
-                                    return "warning.main"; // pending or other
-                                }
-                              })(),
+                              borderRadius: 2,
+                              py: 1.2,
                             }}
-                          > {t.status || "PENDING"} </Typography>
-                        )}
-                      </ListItem>
+                          >
+                            Transaction #{t.transaction_id} — ${t.amount}
+                            <span>{isOpen ? "▲" : "▼"}</span>
+                          </Button>
+
+                          {/* Status or Review Buttons */}
+                          {t.status === "REQUIRES_REVIEW" ? (
+                            <>
+                              {/* Approve */}
+                              <Button
+                                variant="contained"
+                                color="success"
+                                sx={{ minWidth: 50 }}
+                                onClick={() => handleApprove(t.transaction_id)}
+                              >
+                                ✔
+                              </Button>
+
+                              {/* Reject */}
+                              <Button
+                                variant="contained"
+                                color="error"
+                                sx={{ minWidth: 50 }}
+                                onClick={() => handleReject(t.transaction_id)}
+                              >
+                                ✖
+                              </Button>
+                            </>
+                          ) : (
+                            // Otherwise show status text
+                            <Typography
+                              sx={{
+                                minWidth: 120,
+                                textAlign: "center",
+                                fontWeight: "bold",
+                                p: 1,
+                                borderRadius: 1,
+                                color: "white", // text color
+                                backgroundColor: (() => {
+                                  switch (t.status?.toUpperCase()) {
+                                    case "APPROVED":
+                                      return "success.main";
+                                    case "REJECTED":
+                                      return "error.main";
+                                    default:
+                                      return "warning.main"; // pending or other
+                                  }
+                                })(),
+                              }}
+                            >
+                              {t.status || "PENDING"}
+                            </Typography>
+                          )}
                         </ListItem>
 
                         {/* EXPAND/COLLAPSE TABLE */}

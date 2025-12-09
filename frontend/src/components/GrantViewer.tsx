@@ -7,43 +7,35 @@ import {
   CircularProgress,
   Typography,
   Paper,
+  Box,
 } from "@mui/material";
 import { GrantDetailsModal } from "./GrantDetailsModal";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { useSupabase } from "../contexts/SessionProvider";
+import { useDataCache } from "../contexts/DataCacheProvider";
 
 interface GrantViewerProps {
-  selectGrants: (client: SupabaseClient) => Promise<any[]>;
   refreshTrigger?: number;
+  onGrantDeleted?: () => void;
 }
 
-export function GrantViewer({ selectGrants, refreshTrigger = 0 }: GrantViewerProps) {
+export function GrantViewer({ refreshTrigger = 0, onGrantDeleted }: GrantViewerProps) {
   const supabase = useSupabase();
-  const [grants, setGrants] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { grants, loading, error, fetchGrants } = useDataCache();
   const [selectedGrant, setSelectedGrant] = useState<any | null>(null);
 
-  const fetchGrants = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await selectGrants(supabase);
-      setGrants(data || []);
-    } catch (err: any) {
-      console.error("Error fetching grants:", err);
-      setError(err.message || "Unknown error");
-    } finally {
-      setLoading(false);
-    }
-  }, [selectGrants]);
-
   useEffect(() => {
-    fetchGrants();
-  }, [fetchGrants, refreshTrigger]);
+    // Force refresh when refreshTrigger changes (e.g., after creating/deleting)
+    const forceRefresh = refreshTrigger > 0;
+    fetchGrants(supabase, forceRefresh);
+  }, [supabase, fetchGrants, refreshTrigger]);
 
   if (loading) {
-    return <CircularProgress />;
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight={300}>
+        <CircularProgress />
+      </Box>
+    );
   }
 
   if (error) {
@@ -80,6 +72,7 @@ export function GrantViewer({ selectGrants, refreshTrigger = 0 }: GrantViewerPro
         onClose={() => setSelectedGrant(null)}
         grant={selectedGrant}
         supabase={supabase}
+        onGrantDeleted={onGrantDeleted}
       />
     </Paper>
   );

@@ -3,13 +3,17 @@ import { GrantViewer } from "../components/GrantViewer";
 import { CreateGrantForm } from "../components/GrantCreator";
 import Box from "@mui/material/Box";
 import { insertGrant } from "../utils/supabase-client-queries/grants";
-import { selectGrants } from "../utils/supabase-client-queries/grants";
 
 export default function Grants() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const handleGrantCreated = useCallback(() => {
     // Increment to trigger a refetch in GrantViewer
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
+
+  const handleGrantDeleted = useCallback(() => {
+    // Increment to trigger a refetch in GrantViewer after deletion
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
@@ -20,8 +24,8 @@ export default function Grants() {
         onSuccess={handleGrantCreated}
       />
       <GrantViewer 
-        selectGrants={selectGrants}
-        refreshTrigger={refreshTrigger} 
+        refreshTrigger={refreshTrigger}
+        onGrantDeleted={handleGrantDeleted}
       />
     </Box>
   );

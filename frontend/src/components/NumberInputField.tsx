@@ -40,7 +40,7 @@ export default function NumberInputField({
       size="small"
       slotProps={{
         htmlInput: {
-          maxlength: 12,
+          'maxlength': 12,
         },
         input: {
           inputMode: "numeric",
