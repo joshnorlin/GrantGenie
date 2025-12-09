@@ -13,13 +13,15 @@ export default function NavigationTabs({ onLogout }: { onLogout: () => void }) {
         return 1;
       case "/transactions":
         return 2;
+      case "/invitations":
+        return 3;
       default:
         return 0;
     }
   })();
 
   const handleChange = (_: React.SyntheticEvent, newValue: number) => {
-    const paths = ["/", "/grants", "/transactions"];
+    const paths = ["/", "/grants", "/transactions", "/invitations"];
     navigate(paths[newValue]);
   };
 
@@ -38,6 +40,7 @@ export default function NavigationTabs({ onLogout }: { onLogout: () => void }) {
           <Tab label="Home" />
           <Tab label="Grants" />
           <Tab label="Transactions" />
+          <Tab label="Invitations" />
         </Tabs>
         <Button color="error" onClick={onLogout}>
           Logout

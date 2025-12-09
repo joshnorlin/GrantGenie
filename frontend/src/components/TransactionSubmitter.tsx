@@ -166,6 +166,7 @@ export default function TransactionModal({ open, onClose }: Props) {
 
         {/* Category Dropdown */}
         <TextField
+        
           select
           fullWidth
           label="Select Category"

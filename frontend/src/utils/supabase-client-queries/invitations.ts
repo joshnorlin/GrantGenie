@@ -29,7 +29,7 @@ export async function createInvitation(
   if (!session) throw new Error("Not authenticated");
 
   const res = await fetch(
-    `${client.supabaseUrl}/functions/v1/create-invite`,
+    "https://ihoqewwgkpjmkgwoenck.supabase.co/functions/v1/create-invite",
     {
       method: "POST",
       headers: {
@@ -52,14 +52,16 @@ export async function createInvitation(
  * Validate an invitation token via edge function
  */
 export async function validateInvitation(
-  supabaseUrl: string,
   token: string
 ) {
-  const res = await fetch(`${supabaseUrl}/functions/v1/validate-invite`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token }),
-  });
+  const res = await fetch(
+    "https://ihoqewwgkpjmkgwoenck.supabase.co/functions/v1/validate-invite",
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    }
+  );
 
   if (!res.ok) {
     const errData = await res.json().catch(() => ({ error: "Unknown error" }));
@@ -80,7 +82,7 @@ export async function acceptInvitation(
   if (!session) throw new Error("Not authenticated");
 
   const res = await fetch(
-    `${client.supabaseUrl}/functions/v1/accept-invite`,
+    "https://ihoqewwgkpjmkgwoenck.supabase.co/functions/v1/accept-invite",
     {
       method: "POST",
       headers: {
