@@ -31,3 +31,12 @@ export async function selectGrants(client: SupabaseClient) {
   if (error) throw error;
   return data;
 }
+
+export async function deleteGrant(client: SupabaseClient, grantId: number) {
+  const { error } = await client
+    .from("grants")
+    .delete()
+    .eq("grant_id", grantId);
+
+  if (error) throw error;
+}

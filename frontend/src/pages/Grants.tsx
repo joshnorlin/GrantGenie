@@ -13,6 +13,11 @@ export default function Grants() {
     setRefreshTrigger((prev) => prev + 1);
   }, []);
 
+  const handleGrantDeleted = useCallback(() => {
+    // Increment to trigger a refetch in GrantViewer after deletion
+    setRefreshTrigger((prev) => prev + 1);
+  }, []);
+
   return (
     <Box sx={{ mt: 4, display: "flex", flexDirection: "column", gap: 3 }}>
       <CreateGrantForm
@@ -21,7 +26,8 @@ export default function Grants() {
       />
       <GrantViewer 
         selectGrants={selectGrants}
-        refreshTrigger={refreshTrigger} 
+        refreshTrigger={refreshTrigger}
+        onGrantDeleted={handleGrantDeleted}
       />
     </Box>
   );

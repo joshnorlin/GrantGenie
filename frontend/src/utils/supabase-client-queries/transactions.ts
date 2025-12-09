@@ -7,7 +7,7 @@ export async function selectTransactionsByGrant(
 ) {
   const { data, error } = await client
     .from("transactions")
-    .select("amount, created_at, description")
+    .select("amount, created_at")
     .eq("grant_id", grantId)
     .order("created_at", { ascending: false });
 

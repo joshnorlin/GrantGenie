@@ -15,9 +15,10 @@ import { useSupabase } from "../contexts/SessionProvider";
 interface GrantViewerProps {
   selectGrants: (client: SupabaseClient) => Promise<any[]>;
   refreshTrigger?: number;
+  onGrantDeleted?: () => void;
 }
 
-export function GrantViewer({ selectGrants, refreshTrigger = 0 }: GrantViewerProps) {
+export function GrantViewer({ selectGrants, refreshTrigger = 0, onGrantDeleted }: GrantViewerProps) {
   const supabase = useSupabase();
   const [grants, setGrants] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -80,6 +81,7 @@ export function GrantViewer({ selectGrants, refreshTrigger = 0 }: GrantViewerPro
         onClose={() => setSelectedGrant(null)}
         grant={selectedGrant}
         supabase={supabase}
+        onGrantDeleted={onGrantDeleted}
       />
     </Paper>
   );
