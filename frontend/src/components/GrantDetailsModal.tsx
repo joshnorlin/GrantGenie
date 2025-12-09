@@ -158,6 +158,7 @@ export function GrantDetailsModal({ open, onClose, grant, supabase, onGrantDelet
                     grantId={grant.grant_id}
                     grantName={grant.name}
                     onDeleteGrant={handleDeleteGrant}
+                    supabase={supabase}
                   />
                 )}
               </>
