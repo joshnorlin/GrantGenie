@@ -44,10 +44,27 @@ export async function updateTransactionStatus(
   transactionId: number,
   newStatus: string
 ) {
+  // Get the current user (via auth session)
+  const {
+    data: { user },
+    error: userError,
+  } = await client.auth.getUser();
+
+  if (userError) throw userError;
+  if (!user) throw new Error("No logged-in user found");
+
+  // Decide what to store as the verifier (id or email)
+  const verifier = user.id;
+
   const { error } = await client
     .from("transactions")
-    .update({ status: newStatus })
+    .update({
+      status: newStatus,
+      verified_by: verifier,
+      human_verified: true,
+    })
     .eq("transaction_id", transactionId);
 
   if (error) throw error;
 }
+
