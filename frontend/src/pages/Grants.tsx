@@ -1,11 +1,14 @@
 import { useState, useCallback } from "react";
 import { GrantViewer } from "../components/GrantViewer";
-import { CreateGrantForm } from "../components/GrantCreator";
-import Box from "@mui/material/Box";
-import { insertGrant } from "../utils/supabase-client-queries/grants";
+import MultiStepGrantCreator from "../components/MultiStepGrantCreator";
+import { Box, Button } from "@mui/material";
+import AddIcon from "@mui/icons-material/Add";
+import { useSupabase } from "../contexts/SessionProvider";
 
 export default function Grants() {
+  const supabase = useSupabase();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
 
   const handleGrantCreated = useCallback(() => {
     // Increment to trigger a refetch in GrantViewer
@@ -19,13 +22,27 @@ export default function Grants() {
 
   return (
     <Box sx={{ mt: 4, display: "flex", flexDirection: "column", gap: 3 }}>
-      <CreateGrantForm
-        insertGrant={insertGrant}
-        onSuccess={handleGrantCreated}
-      />
+      <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+        <Button
+          variant="contained"
+          size="large"
+          startIcon={<AddIcon />}
+          onClick={() => setCreateModalOpen(true)}
+        >
+          Create Grant
+        </Button>
+      </Box>
+
       <GrantViewer 
         refreshTrigger={refreshTrigger}
         onGrantDeleted={handleGrantDeleted}
+      />
+
+      <MultiStepGrantCreator
+        open={createModalOpen}
+        onClose={() => setCreateModalOpen(false)}
+        onSuccess={handleGrantCreated}
+        supabase={supabase}
       />
     </Box>
   );
