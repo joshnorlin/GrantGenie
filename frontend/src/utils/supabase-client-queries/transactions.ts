@@ -7,7 +7,21 @@ export async function selectTransactionsByGrant(
 ) {
   const { data, error } = await client
     .from("transactions")
-    .select("amount, created_at")
+    .select(`
+      transaction_id,
+      amount,
+      created_at,
+      status,
+      category_id,
+      additional_details,
+      confidence_score,
+      human_verified,
+      category_lookup:category_id (
+        category_id,
+        category,
+        super_category
+      )
+    `)
     .eq("grant_id", grantId)
     .order("created_at", { ascending: false });
 
