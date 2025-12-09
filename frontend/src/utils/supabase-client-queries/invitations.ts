@@ -18,6 +18,49 @@ export async function selectInvitationsByGrant(
 }
 
 /**
+ * Fetch all pending invitations for the current user (by email)
+ */
+export async function selectMyInvitations(
+  client: SupabaseClient
+) {
+  const { data: { user } } = await client.auth.getUser();
+  if (!user?.email) throw new Error("No user email found");
+
+  // Query invitations joined with grants table
+  const { data, error } = await client
+    .from("grant_invitations")
+    .select(`
+      id,
+      grant_id,
+      invited_email,
+      token,
+      status,
+      created_at,
+      expires_at,
+      accepted_at
+    `)
+    .eq("invited_email", user.email.toLowerCase())
+    .eq("status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+
+  // Manually fetch grant info for each invitation
+  const invitationsWithGrants = await Promise.all(
+    (data || []).map(async (inv) => {
+      const { data: grant } = await client
+        .from("grants")
+        .select("grant_id, name, grant_number")
+        .eq("grant_id", inv.grant_id)
+        .single();
+      return { ...inv, grant };
+    })
+  );
+
+  return invitationsWithGrants || [];
+}
+
+/**
  * Create a new invitation via edge function
  */
 export async function createInvitation(
@@ -99,4 +142,20 @@ export async function acceptInvitation(
   }
 
   return await res.json();
+}
+
+/**
+ * Reject an invitation (updates status to revoked)
+ */
+export async function rejectInvitation(
+  client: SupabaseClient,
+  inviteId: string
+) {
+  const { error } = await client
+    .from("grant_invitations")
+    .update({ status: "revoked" })
+    .eq("id", inviteId);
+
+  if (error) throw error;
+  return true;
 }

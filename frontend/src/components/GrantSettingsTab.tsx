@@ -24,6 +24,7 @@ import WarningIcon from "@mui/icons-material/Warning";
 import PersonAddIcon from "@mui/icons-material/PersonAdd";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { selectInvitationsByGrant, createInvitation } from "../utils/supabase-client-queries/invitations";
+import { useDataCache } from "../contexts/DataCacheProvider";
 
 interface GrantSettingsTabProps {
   grantId: number;
@@ -33,13 +34,14 @@ interface GrantSettingsTabProps {
 }
 
 export function GrantSettingsTab({ grantId, grantName, onDeleteGrant, supabase }: GrantSettingsTabProps) {
+  const { invalidateCache } = useDataCache();
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [inviteDialogOpen, setInviteDialogOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [invitations, setInvitations] = useState<any[]>([]);
-  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [loadingInvites, setLoadingInvites] = useState(true);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -75,6 +77,7 @@ export function GrantSettingsTab({ grantId, grantName, onDeleteGrant, supabase }
       setInviteDialogOpen(false);
       setInviteEmail("");
       fetchInvitations();
+      invalidateCache(); // Invalidate invitations cache
     } catch (err: any) {
       setErrorMessage(err.message || "Failed to send invitation");
     } finally {
