@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { selectGrants } from "../utils/supabase-client-queries/grants";
 import { selectAllTransactions } from "../utils/supabase-client-queries/transactions";

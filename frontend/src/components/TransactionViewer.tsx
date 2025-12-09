@@ -32,7 +32,8 @@ export default function TransactionViewer() {
   useEffect(() => {
     fetchGrants(supabase);
     fetchTransactions(supabase);
-  }, [supabase, fetchGrants, fetchTransactions]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
 
   // Group transactions by grant
   const transactionsByGrant = transactions.reduce(

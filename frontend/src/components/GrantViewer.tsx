@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   List,
   ListItem,
@@ -10,7 +10,6 @@ import {
   Box,
 } from "@mui/material";
 import { GrantDetailsModal } from "./GrantDetailsModal";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { useSupabase } from "../contexts/SessionProvider";
 import { useDataCache } from "../contexts/DataCacheProvider";
 
@@ -23,12 +22,23 @@ export function GrantViewer({ refreshTrigger = 0, onGrantDeleted }: GrantViewerP
   const supabase = useSupabase();
   const { grants, loading, error, fetchGrants } = useDataCache();
   const [selectedGrant, setSelectedGrant] = useState<any | null>(null);
+  const prevTriggerRef = useRef(refreshTrigger);
+  const hasFetchedRef = useRef(false);
 
   useEffect(() => {
-    // Force refresh when refreshTrigger changes (e.g., after creating/deleting)
-    const forceRefresh = refreshTrigger > 0;
-    fetchGrants(supabase, forceRefresh);
-  }, [supabase, fetchGrants, refreshTrigger]);
+    // Only fetch on mount or when refreshTrigger actually changes
+    if (!hasFetchedRef.current) {
+      // First mount - use cache if available
+      fetchGrants(supabase, false);
+      hasFetchedRef.current = true;
+      prevTriggerRef.current = refreshTrigger;
+    } else if (refreshTrigger !== prevTriggerRef.current) {
+      // Trigger changed - force refresh
+      fetchGrants(supabase, true);
+      prevTriggerRef.current = refreshTrigger;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshTrigger]); // Only depend on refreshTrigger
 
   if (loading) {
     return (

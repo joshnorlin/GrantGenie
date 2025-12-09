@@ -105,7 +105,7 @@ export default function TransactionModal({ open, onClose }: Props) {
       if (!token) throw new Error("No session token found");
   
       const res = await fetch(
-        "http://localhost:8000",
+        "https://ihoqewwgkpjmkgwoenck.supabase.co/functions/v1/verify-transaction",
         {
           method: "POST",
           headers: {

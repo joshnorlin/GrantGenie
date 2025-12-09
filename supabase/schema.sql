@@ -142,6 +142,7 @@ CREATE OR REPLACE FUNCTION "public"."get_budget_summary"("p_grant_id" integer) R
     select category_id, sum(amount) as total_spent
     from transactions
     where grant_id = p_grant_id
+      and status = 'APPROVED'
     group by category_id
   ) t on t.category_id = gbi.category_id
   where gbi.grant_id = p_grant_id;
