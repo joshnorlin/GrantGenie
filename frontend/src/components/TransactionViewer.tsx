@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import {
   Paper,
   Typography,
@@ -12,16 +12,15 @@ import {
   TableCell,
   TableRow,
   Collapse,
+  Box,
 } from "@mui/material";
 import { useSupabase } from "../contexts/SessionProvider";
-import { selectGrants } from "../utils/supabase-client-queries/grants";
-import { selectAllTransactions, updateTransactionStatus } from "../utils/supabase-client-queries/transactions";
+import { updateTransactionStatus } from "../utils/supabase-client-queries/transactions";
+import { useDataCache } from "../contexts/DataCacheProvider";
 
 export default function TransactionViewer() {
   const supabase = useSupabase();
-  const [grants, setGrants] = useState<any[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { grants, transactions, loading, fetchGrants, fetchTransactions, invalidateCache } = useDataCache();
 
   // Which transaction is expanded?
   const [expanded, setExpanded] = useState<number | null>(null);
@@ -30,26 +29,10 @@ export default function TransactionViewer() {
     setExpanded(expanded === id ? null : id);
   };
 
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const grantsData = await selectGrants(supabase);
-      const transactionsData = await selectAllTransactions(supabase);
-
-      setGrants(grantsData || []);
-      setTransactions(transactionsData || []);
-    } catch (err) {
-      console.error("Error fetching data:", err);
-      setGrants([]);
-      setTransactions([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [supabase]);
-
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchGrants(supabase);
+    fetchTransactions(supabase);
+  }, [supabase, fetchGrants, fetchTransactions]);
 
   // Group transactions by grant
   const transactionsByGrant = transactions.reduce(
@@ -64,7 +47,8 @@ export default function TransactionViewer() {
   const handleApprove = async (transactionId: number) => {
     try {
       await updateTransactionStatus(supabase, transactionId, "APPROVED");
-      fetchData(); // refresh after update
+      invalidateCache();
+      await fetchTransactions(supabase, true);
     } catch (err) {
       console.error("Approval failed:", err);
     }
@@ -73,7 +57,8 @@ export default function TransactionViewer() {
   const handleReject = async (transactionId: number) => {
     try {
       await updateTransactionStatus(supabase, transactionId, "REJECTED");
-      fetchData(); // refresh after update
+      invalidateCache();
+      await fetchTransactions(supabase, true);
     } catch (err) {
       console.error("Rejection failed:", err);
     }
@@ -86,7 +71,9 @@ export default function TransactionViewer() {
       </Typography>
 
       {loading ? (
-        <CircularProgress />
+        <Box display="flex" justifyContent="center" alignItems="center" minHeight={300}>
+          <CircularProgress />
+        </Box>
       ) : grants.length === 0 ? (
         <Typography>No grants found.</Typography>
       ) : (

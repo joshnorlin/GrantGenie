@@ -3,7 +3,6 @@ import { GrantViewer } from "../components/GrantViewer";
 import { CreateGrantForm } from "../components/GrantCreator";
 import Box from "@mui/material/Box";
 import { insertGrant } from "../utils/supabase-client-queries/grants";
-import { selectGrants } from "../utils/supabase-client-queries/grants";
 
 export default function Grants() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -25,7 +24,6 @@ export default function Grants() {
         onSuccess={handleGrantCreated}
       />
       <GrantViewer 
-        selectGrants={selectGrants}
         refreshTrigger={refreshTrigger}
         onGrantDeleted={handleGrantDeleted}
       />
