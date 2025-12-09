@@ -17,23 +17,43 @@ import {
 import { useSupabase } from "../contexts/SessionProvider";
 import { updateTransactionStatus } from "../utils/supabase-client-queries/transactions";
 import { useDataCache } from "../contexts/DataCacheProvider";
+import { fetchLogsForTransaction } from "../utils/supabase-client-queries/llm_logs";
 
 export default function TransactionViewer() {
   const supabase = useSupabase();
-  const { grants, transactions, loading, fetchGrants, fetchTransactions, invalidateCache } = useDataCache();
+  const { grants, transactions, loading, fetchGrants, fetchTransactions, invalidateCache } =
+    useDataCache();
+
+  const [logs, setLogs] = useState<Record<number, any[]>>({});
+  const [loadingLogs, setLoadingLogs] = useState<number | null>(null);
+
+  // Fetch logs for a specific transaction
+  const loadLogs = async (transactionId: number) => {
+    setLoadingLogs(transactionId);
+
+    const { data, error } = await fetchLogsForTransaction(supabase, transactionId);
+
+    if (!error) {
+      setLogs((prev) => ({ ...prev, [transactionId]: data }));
+    } else {
+      console.error("Failed loading logs:", error);
+    }
+
+    setLoadingLogs(null);
+  };
 
   // Which transaction is expanded?
   const [expanded, setExpanded] = useState<number | null>(null);
 
   const toggleExpand = (id: number) => {
+    if (expanded !== id) loadLogs(id);
     setExpanded(expanded === id ? null : id);
   };
 
   useEffect(() => {
     fetchGrants(supabase);
     fetchTransactions(supabase);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run on mount
+  }, []);
 
   // Group transactions by grant
   const transactionsByGrant = transactions.reduce(
@@ -46,23 +66,15 @@ export default function TransactionViewer() {
   );
 
   const handleApprove = async (transactionId: number) => {
-    try {
-      await updateTransactionStatus(supabase, transactionId, "APPROVED");
-      invalidateCache();
-      await fetchTransactions(supabase, true);
-    } catch (err) {
-      console.error("Approval failed:", err);
-    }
+    await updateTransactionStatus(supabase, transactionId, "APPROVED");
+    invalidateCache();
+    fetchTransactions(supabase, true);
   };
-  
+
   const handleReject = async (transactionId: number) => {
-    try {
-      await updateTransactionStatus(supabase, transactionId, "REJECTED");
-      invalidateCache();
-      await fetchTransactions(supabase, true);
-    } catch (err) {
-      console.error("Rejection failed:", err);
-    }
+    await updateTransactionStatus(supabase, transactionId, "REJECTED");
+    invalidateCache();
+    fetchTransactions(supabase, true);
   };
 
   return (
@@ -89,7 +101,7 @@ export default function TransactionViewer() {
 
               <Divider sx={{ mb: 1 }} />
 
-              {grantTransactions.length === 0 ? (
+              {!grantTransactions.length ? (
                 <Typography>No transactions yet.</Typography>
               ) : (
                 <List dense>
@@ -98,9 +110,7 @@ export default function TransactionViewer() {
 
                     return (
                       <div key={t.transaction_id}>
-                        {/* CLICKABLE BUTTON */}
                         <ListItem sx={{ p: 0, mb: 1, display: "flex", gap: 1 }}>
-                          {/* Main Dropdown Button */}
                           <Button
                             variant="contained"
                             color={isOpen ? "secondary" : "primary"}
@@ -118,10 +128,8 @@ export default function TransactionViewer() {
                             <span>{isOpen ? "▲" : "▼"}</span>
                           </Button>
 
-                          {/* Status or Review Buttons */}
                           {t.status === "REQUIRES_REVIEW" ? (
                             <>
-                              {/* Approve */}
                               <Button
                                 variant="contained"
                                 color="success"
@@ -131,7 +139,6 @@ export default function TransactionViewer() {
                                 ✔
                               </Button>
 
-                              {/* Reject */}
                               <Button
                                 variant="contained"
                                 color="error"
@@ -142,7 +149,6 @@ export default function TransactionViewer() {
                               </Button>
                             </>
                           ) : (
-                            // Otherwise show status text
                             <Typography
                               sx={{
                                 minWidth: 120,
@@ -150,7 +156,7 @@ export default function TransactionViewer() {
                                 fontWeight: "bold",
                                 p: 1,
                                 borderRadius: 1,
-                                color: "white", // text color
+                                color: "white",
                                 backgroundColor: (() => {
                                   switch (t.status?.toUpperCase()) {
                                     case "APPROVED":
@@ -158,7 +164,7 @@ export default function TransactionViewer() {
                                     case "REJECTED":
                                       return "error.main";
                                     default:
-                                      return "warning.main"; // pending or other
+                                      return "warning.main";
                                   }
                                 })(),
                               }}
@@ -168,34 +174,60 @@ export default function TransactionViewer() {
                           )}
                         </ListItem>
 
-                        {/* EXPAND/COLLAPSE TABLE */}
+                        {/* EXPANDED PANEL */}
                         <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                          <Paper
-                            elevation={1}
-                            sx={{ p: 2, mb: 2, backgroundColor: "#fafafa" }}
-                          >
+                          <Paper elevation={1} sx={{ p: 2, mb: 2, backgroundColor: "#fafafa" }}>
                             <Table size="small">
                               <TableBody>
-                                {Object.entries(t).map(([key, value]) => (
-                                  <TableRow key={key}>
-                                    <TableCell
-                                      sx={{
-                                        fontWeight: "bold",
-                                        width: "30%",
-                                      }}
-                                    >
-                                      {key}
-                                    </TableCell>
-                                    <TableCell>
-                                      {typeof value === "string" &&
-                                      value.startsWith("20")
-                                        ? new Date(value).toLocaleString()
-                                        : String(value)}
-                                    </TableCell>
-                                  </TableRow>
-                                ))}
+                                {Object.entries(t).map(([key, value]) =>
+                                  key !== "llm_logs" ? (
+                                    <TableRow key={key}>
+                                      <TableCell
+                                        sx={{ fontWeight: "bold", width: "30%" }}
+                                      >
+                                        {key}
+                                      </TableCell>
+                                      <TableCell>
+                                        {typeof value === "string" && value.startsWith("20")
+                                          ? new Date(value).toLocaleString()
+                                          : String(value)}
+                                      </TableCell>
+                                    </TableRow>
+                                  ) : null
+                                )}
                               </TableBody>
                             </Table>
+
+                            {/* LOGS SECTION */}
+                            <Paper elevation={1} sx={{ p: 2, backgroundColor: "#fff7e6" }}>
+                              <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
+                                LLM Logs
+                              </Typography>
+
+                              {loadingLogs === t.transaction_id ? (
+                                <Typography>Loading logs...</Typography>
+                              ) : logs[t.transaction_id]?.length ? (
+                                <Table size="small">
+                                  <TableBody>
+                                    {logs[t.transaction_id].map((log) => (
+                                      <TableRow key={log.log_id}>
+                                        <TableCell
+                                          sx={{
+                                            width: "25%",
+                                            fontWeight: "bold",
+                                          }}
+                                        >
+                                          {new Date(log.created_at).toLocaleString()}
+                                        </TableCell>
+                                        <TableCell>{log.log}</TableCell>
+                                      </TableRow>
+                                    ))}
+                                  </TableBody>
+                                </Table>
+                              ) : (
+                                <Typography>No logs for this transaction.</Typography>
+                              )}
+                            </Paper>
                           </Paper>
                         </Collapse>
                       </div>

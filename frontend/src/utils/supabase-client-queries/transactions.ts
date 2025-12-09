@@ -68,3 +68,16 @@ export async function updateTransactionStatus(
   if (error) throw error;
 }
 
+export async function fetchUserTransactionsWithLogs( client: SupabaseClient ) {
+  const { data, error } = await client
+    .from("transactions")
+    .select(`
+      *,
+      llm_logs (*)
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data;
+}
+
