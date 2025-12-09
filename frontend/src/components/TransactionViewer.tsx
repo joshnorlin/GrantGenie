@@ -134,7 +134,7 @@ export default function TransactionViewer() {
                             <span>{isOpen ? "▲" : "▼"}</span>
                           </Button>
 
-                          {t.status === "REQUIRES_REVIEW" ? (
+                          {t.status === "REQUIRES_REVIEW" && (
                             <>
                               <Button
                                 variant="contained"
@@ -154,8 +154,19 @@ export default function TransactionViewer() {
                                 ✖
                               </Button>
                             </>
-                          ) : (
-                            <Typography
+                          )}
+                          {t.status === "REJECTED" && (
+                            <Button
+                              size="small"
+                              variant="contained"
+                              color="warning"
+                              onClick={() => handleReviewRequest(t.transaction_id)}
+                              sx={{ ml: 1 }}
+                            >
+                              Request Manual Review
+                            </Button>
+                          )}
+                                                    <Typography
                               sx={{
                                 minWidth: 120,
                                 textAlign: "center",
@@ -177,18 +188,6 @@ export default function TransactionViewer() {
                             >
                               {t.status || "PENDING"}
                             </Typography>
-                          )}
-                          {t.status === "REJECTED" && (
-                            <Button
-                              size="small"
-                              variant="contained"
-                              color="warning"
-                              onClick={() => handleReviewRequest(t.transaction_id)}
-                              sx={{ ml: 1 }}
-                            >
-                              Request Manual Review
-                            </Button>
-                          )}
                         </ListItem>
 
                         {/* EXPANDED PANEL */}
