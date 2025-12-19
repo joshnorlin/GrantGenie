@@ -10,8 +10,8 @@ export default function Home() {
         We help grant your financial wishes.
       </Typography>
       <img 
-        src="https://i.imgur.com/FaS6ji4.png" 
-        alt="Logo" 
+        src="/FaS6ji4.png" 
+        alt="Grant Genie Logo" 
         style={{ width: 200, borderRadius: 8 }}
       />
       <Typography variant="h6" >

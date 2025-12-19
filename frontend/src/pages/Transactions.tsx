@@ -1,13 +1,21 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button, Box } from "@mui/material";
 import TransactionModal from '../components/TransactionSubmitter';
 import TransactionViewer from '../components/TransactionViewer';
 
 export default function TransactionsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const transactionViewerRef = useRef<any>(null);
 
   const handleOpenModal = () => setIsModalOpen(true);
   const handleCloseModal = () => setIsModalOpen(false);
+
+  const handleTransactionSubmitted = async () => {
+    // Refresh the transaction viewer
+    if (transactionViewerRef.current?.refreshTransactions) {
+      await transactionViewerRef.current.refreshTransactions();
+    }
+  };
 
   return (
     <Box
@@ -23,9 +31,10 @@ export default function TransactionsPage() {
       <TransactionModal
         open={isModalOpen}
         onClose={handleCloseModal}
+        onTransactionSubmitted={handleTransactionSubmitted}
       />
 
-      <TransactionViewer />
+      <TransactionViewer ref={transactionViewerRef} />
     </Box>
   );
 }

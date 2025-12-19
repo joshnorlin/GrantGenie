@@ -9,10 +9,13 @@ import {
   MenuItem,
   CircularProgress,
   Typography,
+  Alert,
+  Box,
 } from "@mui/material";
 import { selectGrants } from "../utils/supabase-client-queries/grants";
 import { selectCategoriesByGrant } from "../utils/supabase-client-queries/categories";
 import { useSupabase } from "../contexts/SessionProvider";
+import TransactionVerdictDisplay from "./TransactionVerdictDisplay";
 import type { VerifyTransactionResponse } from "../types/types";
 
 interface Grant {
@@ -32,10 +35,10 @@ interface Category {
 interface Props {
   open: boolean;
   onClose: () => void;
-  onTransactionSubmitted?: () => void; // callback after successful submit
+  onTransactionSubmitted?: () => void | Promise<void>; // callback to refresh transactions
 }
 
-export default function TransactionModal({ open, onClose }: Props) {
+export default function TransactionModal({ open, onClose, onTransactionSubmitted }: Props) {
   const supabase = useSupabase();
   const [grants, setGrants] = useState<Grant[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -206,22 +209,51 @@ export default function TransactionModal({ open, onClose }: Props) {
 
         {loading && <CircularProgress sx={{ mt: 2 }} />}
         {response && (
-          <Typography variant="body2" sx={{ mt: 2, whiteSpace: "pre-wrap" }}>
-            {JSON.stringify(response, null, 2)}
-          </Typography>
+          <>
+            {response.error ? (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                <Typography variant="body2">
+                  <strong>Error:</strong> {response.error}
+                </Typography>
+              </Alert>
+            ) : (
+              <Box>
+                <TransactionVerdictDisplay verdict={response.llm_verdict} />
+              </Box>
+            )}
+          </>
         )}
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={onClose}>Cancel</Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={
-            loading || !selectedGrant || !selectedCategory || !amount || !description
-          }
-        >
-          Submit
-        </Button>
+        {response ? (
+          <Button 
+            onClick={async () => {
+              if (onTransactionSubmitted) {
+                await onTransactionSubmitted();
+              }
+              onClose();
+            }} 
+            variant="contained" 
+            color="primary"
+          >
+            Close
+          </Button>
+        ) : (
+          <>
+            <Button onClick={onClose}>Cancel</Button>
+            <Button
+              onClick={handleSubmit}
+              disabled={
+                loading || !selectedGrant || !selectedCategory || !amount || !description
+              }
+              variant="contained"
+              color="primary"
+            >
+              Submit
+            </Button>
+          </>
+        )}
       </DialogActions>
     </Dialog>
   );

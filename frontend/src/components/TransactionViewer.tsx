@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, forwardRef, useImperativeHandle } from "react";
 import {
   Paper,
   Typography,
@@ -7,10 +7,6 @@ import {
   ListItem,
   Button,
   Divider,
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
   Collapse,
   Box,
 } from "@mui/material";
@@ -18,8 +14,10 @@ import { useSupabase } from "../contexts/SessionProvider";
 import { updateTransactionStatus } from "../utils/supabase-client-queries/transactions";
 import { useDataCache } from "../contexts/DataCacheProvider";
 import { fetchLogsForTransaction } from "../utils/supabase-client-queries/llm_logs";
+import TransactionDetailsDisplay from "./TransactionDetailsDisplay";
+import LLMLogsDisplay from "./LLMLogsDisplay";
 
-export default function TransactionViewer() {
+const TransactionViewer = forwardRef((_props, ref) => {
   const supabase = useSupabase();
   const { grants, transactions, loading, fetchGrants, fetchTransactions, invalidateCache } =
     useDataCache();
@@ -54,6 +52,14 @@ export default function TransactionViewer() {
     fetchGrants(supabase);
     fetchTransactions(supabase);
   }, []);
+
+  // Expose refresh method to parent
+  useImperativeHandle(ref, () => ({
+    refreshTransactions: async () => {
+      invalidateCache();
+      await fetchTransactions(supabase, true);
+    },
+  }));
 
   // Group transactions by grant
   const transactionsByGrant = transactions.reduce(
@@ -192,58 +198,25 @@ export default function TransactionViewer() {
 
                         {/* EXPANDED PANEL */}
                         <Collapse in={isOpen} timeout="auto" unmountOnExit>
-                          <Paper elevation={1} sx={{ p: 2, mb: 2, backgroundColor: "#fafafa" }}>
-                            <Table size="small">
-                              <TableBody>
-                                {Object.entries(t).map(([key, value]) =>
-                                  key !== "llm_logs" ? (
-                                    <TableRow key={key}>
-                                      <TableCell
-                                        sx={{ fontWeight: "bold", width: "30%" }}
-                                      >
-                                        {key}
-                                      </TableCell>
-                                      <TableCell>
-                                        {typeof value === "string" && value.startsWith("20")
-                                          ? new Date(value).toLocaleString()
-                                          : String(value)}
-                                      </TableCell>
-                                    </TableRow>
-                                  ) : null
-                                )}
-                              </TableBody>
-                            </Table>
+                          <Paper elevation={1} sx={{ p: 3, mb: 2, backgroundColor: "#fafafa" }}>
+                            {/* Transaction Details */}
+                            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mb: 2 }}>
+                              Transaction Details
+                            </Typography>
+                            <TransactionDetailsDisplay transaction={t} />
 
                             {/* LOGS SECTION */}
-                            <Paper elevation={1} sx={{ p: 2, backgroundColor: "#fff7e6" }}>
-                              <Typography variant="subtitle2" sx={{ fontWeight: "bold", mb: 1 }}>
-                                LLM Logs
-                              </Typography>
+                            <Typography variant="subtitle1" sx={{ fontWeight: "bold", mt: 3, mb: 2 }}>
+                              LLM Processing Logs
+                            </Typography>
 
-                              {loadingLogs === t.transaction_id ? (
-                                <Typography>Loading logs...</Typography>
-                              ) : logs[t.transaction_id]?.length ? (
-                                <Table size="small">
-                                  <TableBody>
-                                    {logs[t.transaction_id].map((log) => (
-                                      <TableRow key={log.log_id}>
-                                        <TableCell
-                                          sx={{
-                                            width: "25%",
-                                            fontWeight: "bold",
-                                          }}
-                                        >
-                                          {new Date(log.created_at).toLocaleString()}
-                                        </TableCell>
-                                        <TableCell>{log.log}</TableCell>
-                                      </TableRow>
-                                    ))}
-                                  </TableBody>
-                                </Table>
-                              ) : (
-                                <Typography>No logs for this transaction.</Typography>
-                              )}
-                            </Paper>
+                            {loadingLogs === t.transaction_id ? (
+                              <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                                <CircularProgress size={30} />
+                              </Box>
+                            ) : (
+                              <LLMLogsDisplay logs={logs[t.transaction_id] || []} />
+                            )}
                           </Paper>
                         </Collapse>
                       </div>
@@ -257,4 +230,8 @@ export default function TransactionViewer() {
       )}
     </Paper>
   );
-}
+});
+
+TransactionViewer.displayName = "TransactionViewer";
+
+export default TransactionViewer;
